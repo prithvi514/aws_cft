@@ -1,0 +1,454 @@
+  AWSTemplateFormatVersion: 2010-09-09
+
+  Description: Cloudformation template to launch VPC with 3 subnets in 3 AZs
+
+  Metadata:
+    AWS::CloudFormation::Interface:
+      ParameterGroups:
+
+      - Label:
+          default: Tagging Metadata
+        Parameters:
+          - pProjectName
+          - pCFTAuthor
+
+      - Label:
+          default: VPC Configuration
+        Parameters:
+        - pVPCCIDR
+        - pPublicSubnetFlag
+        - pDNSSupport
+        - pDNSHostnamesSupport
+
+      - Label:
+          default: Subnet1 Configuration
+        Parameters:
+          - pSubnet1AZName
+          - pSubnet1CIDR
+
+      - Label:
+          default: Subnet2 Configuration
+        Parameters:
+          - pSubnet2AZName
+          - pSubnet2CIDR
+
+      - Label:
+          default: Subnet3 Configuration
+        Parameters:
+          - pSubnet3AZName
+          - pSubnet3CIDR
+                
+    
+
+  Parameters:
+
+    pProjectName:
+      Description: Name of our Project, only lower case accepted
+      Type: String
+
+    pCFTAuthor:
+      Description: Author email id for tagging
+      Type: String
+
+    pVPCCIDR:
+      Description: VPC1 CIDR range
+      AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+      Type: String
+
+    pPublicSubnetFlag:
+      Description: Indicates if the VPC contains public subnet
+      AllowedValues: [ "yes", "no" ]  
+      Type: String
+
+    pDNSSupport:
+      Type: String
+      Description: "Enable DNS support"
+      AllowedValues: ["true", "false"]
+
+    pDNSHostnamesSupport:
+      Type: String
+      Description: "Enable DNS Hostnames"
+      AllowedValues: ["true", "false"]
+
+    pSubnet1AZName:
+      Description: Availability Zone 1 Name in Region
+      Type: 'AWS::EC2::AvailabilityZone::Name'
+
+    pSubnet2AZName:
+      Description: Availability Zone 2 Name in Region
+      Type: 'AWS::EC2::AvailabilityZone::Name'
+
+    pSubnet3AZName:
+      Description: Availability Zone 3 Name in Region
+      # Type: 'AWS::EC2::AvailabilityZone::Name'
+      Type: String
+
+    pSubnet1CIDR:
+      Description: CIDR range of first subnet
+      Type: String
+      AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+
+    pSubnet2CIDR:
+      Description: CIDR range of second subnet
+      Type: String
+      AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+
+    pSubnet3CIDR:
+      Description: CIDR range of third subnet
+      Type: String
+      # AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'    
+      
+        
+
+
+
+
+  #Mappings: 
+
+  Conditions:
+    cDNSSupport: !Equals [ !Ref pDNSSupport, yes ]
+    cDNSHostnamesSupport: !Equals [ !Ref pDNSHostnamesSupport, yes ]
+    cPublicSubnetFlag: !Not [ !Equals [ !Ref pPublicSubnetFlag, "no" ] ]
+    cSubnet1CIDR: !Not [ !Equals [ !Ref pSubnet1CIDR, "" ] ] 
+    cSubnet1AZName: !Not [ !Equals [ !Ref pSubnet1AZName, "" ] ] 
+    cSubnet2CIDR: !Not [ !Equals [ !Ref pSubnet2CIDR, "" ] ] 
+    cSubnet2AZName: !Not [ !Equals [ !Ref pSubnet2AZName, "" ] ] 
+    cSubnet3CIDR: !Not [ !Equals [ !Ref pSubnet3CIDR, "" ] ] 
+    cSubnet3AZName: !Not [ !Equals [ !Ref pSubnet3AZName, "" ] ]   
+    cSubnet1Flag: !And
+      - !Condition cSubnet1AZName
+      - !Condition cSubnet1CIDR
+    cPublicSubnet1: !And
+      - !Condition cPublicSubnetFlag
+      - !Condition cSubnet1Flag
+    cSubnet2Flag: !And
+      - !Condition cSubnet2AZName
+      - !Condition cSubnet2CIDR
+    cSubnet3Flag: !And
+      - !Condition cSubnet3AZName
+      - !Condition cSubnet3CIDR
+
+
+  Resources: 
+    rVPC:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: !Ref pVPCCIDR
+        EnableDnsSupport: !Ref pDNSSupport
+        EnableDnsHostnames: !Ref pDNSHostnamesSupport
+        InstanceTenancy: default
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test
+          - Key: Name
+            Value: !Join [ "-", [ "vpc-ue1-t", !Ref pProjectName, "vpc" ] ]  
+
+    rPubSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupName: PubSubnetSecurityGroup
+        GroupDescription: Security group associated to Public subnet
+        VpcId: !Ref rVPC
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test
+          - Key: Name
+            Value: !Join [ "-", [ !Ref pProjectName, "pubsubnetsecuritygroup" ] ]   
+
+    rPubSecurityGroupIngress:
+      Type: 'AWS::EC2::SecurityGroupIngress'
+      DependsOn: rPubSecurityGroup
+      Properties:
+        GroupId: !Ref rPubSecurityGroup
+        IpProtocol: '-1'
+        FromPort: '-1'
+        ToPort: '-1'
+        Description: Allowing all traffic in the same VPC
+        SourceSecurityGroupId: !Ref rPubSecurityGroup                                
+
+
+    rPublicSubnet1:
+      Condition: cPublicSubnet1
+      DependsOn: rVPC
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: !Ref pSubnet1AZName
+        VpcId: !Ref rVPC
+        CidrBlock: !Ref pSubnet1CIDR
+        MapPublicIpOnLaunch: true
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test
+          - Key: Visibility
+            Value: public
+          - Key: Name
+            Value: !Join [ "-", [ !Ref pProjectName, "publicsubnet1" ] ]
+          - Key: Region
+            Value: !Ref 'AWS::Region'
+
+    rIGw:
+      Type: AWS::EC2::InternetGateway
+      Condition: cPublicSubnet1
+      DependsOn: rPublicSubnet1
+      Properties:
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test     
+          - Key: Name
+            Value: !Join [ "-", [ !Ref pProjectName, "internetgateway" ] ]
+    AttachGateway:
+      Type: AWS::EC2::VPCGatewayAttachment
+      DependsOn: rIGw
+      Properties:
+        VpcId: !Ref rVPC
+        InternetGatewayId: !Ref rIGw
+
+    rPubRouteTable:
+      Type: AWS::EC2::RouteTable
+      Condition: cPublicSubnet1
+      DependsOn: rPublicSubnet1   
+      Properties:
+        VpcId: !Ref rVPC
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test
+          - Key: Name
+            Value: !Join [ "-", [ !Ref pProjectName, "pubroutetable" ] ]  
+
+    rPubSubnetRouteTableAssociation:
+      Type: 'AWS::EC2::SubnetRouteTableAssociation'
+      DependsOn: rPubRouteTable
+      Properties:
+        SubnetId: !Ref rPublicSubnet1
+        RouteTableId: !Ref rPubRouteTable 
+
+    rPubRoute:
+      Type: AWS::EC2::Route
+      #Cloudformation error: route table X and network gateway Y belong to different networks needs below dependency
+      DependsOn:
+        - rIGw
+        - AttachGateway
+      Properties:
+        RouteTableId: !Ref rPubRouteTable
+        DestinationCidrBlock: 0.0.0.0/0
+        GatewayId: !Ref rIGw      
+
+    rNATGW:
+      Type: AWS::EC2::NatGateway
+      Properties:
+        AllocationId:
+          Fn::GetAtt:
+          - rEIP
+          - AllocationId
+        SubnetId:
+          Ref: rPublicSubnet1
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test      
+          - Key: Name
+            Value: !Join [ "-", [ !Ref pProjectName, "natgateway" ] ]
+    rEIP:
+      DependsOn: AttachGateway
+      Type: AWS::EC2::EIP
+      Properties:
+          Domain: vpc                    
+
+
+    rPrivateSubnet2:
+      Condition: cSubnet2Flag
+      DependsOn: rVPC
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: !Ref pSubnet2AZName
+        VpcId: !Ref rVPC
+        CidrBlock: !Ref pSubnet2CIDR
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test
+          - Key: Visibility  
+            Value: private
+          - Key: Name
+            Value: !Join [ "-", [ !Ref pProjectName, "privatesubnet2" ] ]
+          - Key: Region
+            Value: !Ref 'AWS::Region'      
+
+    rPriRouteTable:
+      Type: AWS::EC2::RouteTable
+      Condition: cSubnet2Flag      
+      Properties:
+        VpcId: !Ref rVPC
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test
+          - Key: Name
+            Value: !Join [ "-", [ !Ref pProjectName, "priroutetable" ] ]  
+
+    rPriSubnet2RouteTableAssociation:
+      Type: 'AWS::EC2::SubnetRouteTableAssociation'
+      DependsOn:
+        - rPriRouteTable
+        - rPrivateSubnet2
+      Properties:
+        SubnetId: !Ref rPrivateSubnet2
+        RouteTableId: !Ref rPriRouteTable                 
+
+    rPrivateSubnet3:
+      Condition: cSubnet3Flag
+      DependsOn: rVPC
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: !Ref pSubnet3AZName
+        VpcId: !Ref rVPC
+        CidrBlock: !Ref pSubnet3CIDR
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test    
+          - Key: Visibility  
+            Value: private  
+          - Key: Name
+            Value: !Join [ "-", [ !Ref pProjectName, "privatesubnet3" ] ]
+          - Key: Region
+            Value: !Ref 'AWS::Region'   
+
+    rPriSubnet3RouteTableAssociation:
+      Type: 'AWS::EC2::SubnetRouteTableAssociation'
+      DependsOn: 
+        - rPriRouteTable
+        - rPrivateSubnet3
+      Properties:
+        SubnetId: !Ref rPrivateSubnet3
+        RouteTableId: !Ref rPriRouteTable
+
+    rPriSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupName: PriSubnetSecurityGroup
+        GroupDescription: Security group associated to Private subnet
+        VpcId: !Ref rVPC
+        Tags:
+          - Key: Environment
+            Value: test
+          - Key: "Owner:Name"
+            Value: !Ref pCFTAuthor
+          - Key: "Owner:Email"
+            Value: !Ref pCFTAuthor
+          - Key: "Purpose"
+            Value: test
+          - Key: Author
+            Value: !Ref pCFTAuthor
+          - Key: Name
+            Value: !Join [ "-", [ !Ref pProjectName, "prisubnetsecuritygroup" ] ]   
+
+    rPriSelfSecurityGroupIngress:
+      Type: 'AWS::EC2::SecurityGroupIngress'
+      DependsOn: rPriSecurityGroup
+      Properties:
+        GroupId: !Ref rPriSecurityGroup
+        IpProtocol: '-1'
+        FromPort: '-1'
+        ToPort: '-1'
+        Description: Allowing all traffic in the same VPC
+        SourceSecurityGroupId: !Ref rPriSecurityGroup          
+
+    rPubPriSecurityGroupIngress:
+      Type: 'AWS::EC2::SecurityGroupIngress'
+      DependsOn: rPriSecurityGroup
+      Properties:
+        GroupId: !Ref rPriSecurityGroup
+        IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        Description: Allowing ssh into private instances from pub nodes
+        SourceSecurityGroupId: !Ref rPubSecurityGroup 
+
+    rNATGWRoute:
+      Type: AWS::EC2::Route
+      Properties:
+          RouteTableId:
+            Ref: rPriRouteTable
+          DestinationCidrBlock: 0.0.0.0/0
+          NatGatewayId:
+            Ref: rNATGW               
+
+
+            
+
+  Outputs:
+    VPC:
+      Value: !Ref rVPC
+    PublicSubnet:
+      Value: !If [ cPublicSubnet1, !Ref rPublicSubnet1, !Ref "AWS::NoValue" ]
+    PrivateSubnet1:
+      Value: !If [ cSubnet2Flag, !Ref rPrivateSubnet2, !Ref "AWS::NoValue" ]
+    PrivateSubnet2:
+      Value: !If [ cSubnet3Flag, !Ref rPrivateSubnet3, !Ref "AWS::NoValue" ]
+    PubRouteTable:
+      Value: !If [ cPublicSubnet1, !Ref rPubRouteTable, !Ref "AWS::NoValue" ]
+    PriRouteTable:
+      Value: !If [ cSubnet2Flag, !Ref rPriRouteTable, !Ref "AWS::NoValue" ]
+    PubSecurityGroup:
+      Value: !If [ cPublicSubnet1, !Ref rPubSecurityGroup, !Ref "AWS::NoValue" ]
+    PriSecurityGroup:
+      Value: !If [ cPublicSubnet1, !Ref rPriSecurityGroup, !Ref "AWS::NoValue" ]
+    NatGW:
+      Value: !If [ cPublicSubnet1, !Ref rNATGW, !Ref "AWS::NoValue" ]   
+    IGW:
+      Value: !If [ cPublicSubnet1, !Ref rIGw, !Ref "AWS::NoValue" ]          
+      # Export:
+      #   Name: !Sub '${AWS::StackName}-SecurityGroup'              
+    CFTAuthor:
+      Value: !Ref pCFTAuthor

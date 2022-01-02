@@ -1,0 +1,290 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VPC nested stack example
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+
+    - Label:
+        default: Tagging Metadata
+      Parameters:
+        - pProjectName
+        - pCFTAuthor
+
+    - Label:
+        default: VPC1 Configuration
+      Parameters:
+      - pVPCCIDR
+      - pPublicSubnetFlag
+      - pDNSSupport
+      - pDNSHostnamesSupport
+
+    - Label:
+        default: VPC1 - Subnet1 Configuration
+      Parameters:
+        - pSubnet1AZName
+        - pSubnet1CIDR
+
+    - Label:
+        default: VPC1 - Subnet2 Configuration
+      Parameters:
+        - pSubnet2AZName
+        - pSubnet2CIDR
+
+    - Label:
+        default: VPC1 - Subnet3 Configuration
+      Parameters:
+        - pSubnet3AZName
+        - pSubnet3CIDR
+
+    - Label:
+        default: VPC2 Configuration
+      Parameters:
+      - pVPCCIDR2
+      - pPublicSubnetFlag2
+      - pDNSSupport2
+      - pDNSHostnamesSupport2
+
+    - Label:
+        default: VPC2 - Subnet1 Configuration
+      Parameters:
+        - pSubnet1AZName2
+        - pSubnet1CIDR2
+
+    - Label:
+        default: VPC2 - Subnet2 Configuration
+      Parameters:
+        - pSubnet2AZName2
+        - pSubnet2CIDR2
+
+    - Label:
+        default: VPC2 - Subnet3 Configuration
+      Parameters:
+        - pSubnet3AZName2
+        - pSubnet3CIDR2        
+                
+    
+
+Parameters:
+  pProjectName:
+    Description: Name of our Project
+    Type: String
+
+  pCFTAuthor:
+    Description: Author email id for tagging
+    Type: String
+
+  pVPCCIDR:
+    Description: VPC1 CIDR range
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Type: String
+
+  pPublicSubnetFlag:
+    Description: Indicates if the VPC contains public subnet
+    AllowedValues: [ "yes", "no" ]  
+    Type: String
+
+  pDNSSupport:
+    Type: String
+    Description: "Enable DNS support"
+    AllowedValues: ["true", "false"]
+
+  pDNSHostnamesSupport:
+    Type: String
+    Description: "Enable DNS Hostnames"
+    AllowedValues: ["true", "false"]
+
+  pSubnet1AZName:
+    Description: Availability Zone 1 Name in Region
+    Type: 'AWS::EC2::AvailabilityZone::Name'
+
+  pSubnet2AZName:
+    Description: Availability Zone 2 Name in Region
+    Type: 'AWS::EC2::AvailabilityZone::Name'
+
+  pSubnet3AZName:
+    Description: Availability Zone 3 Name in Region
+    # Type: 'AWS::EC2::AvailabilityZone::Name'
+    Type: String
+
+  pSubnet1CIDR:
+    Description: CIDR range of first subnet
+    Type: String
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+
+  pSubnet2CIDR:
+    Description: CIDR range of second subnet
+    Type: String
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+
+  pSubnet3CIDR:
+    Description: CIDR range of third subnet
+    Type: String
+    # AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}' 
+
+
+#################
+  pVPCCIDR2:
+    Description: VPC1 CIDR range
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Type: String
+
+  pPublicSubnetFlag2:
+    Description: Indicates if the VPC contains public subnet
+    AllowedValues: [ "yes", "no" ]  
+    Type: String
+
+  pDNSSupport2:
+    Type: String
+    Description: "Enable DNS support"
+    AllowedValues: ["true", "false"]
+
+  pDNSHostnamesSupport2:
+    Type: String
+    Description: "Enable DNS Hostnames"
+    AllowedValues: ["true", "false"]
+
+  pSubnet1AZName2:
+    Description: Availability Zone 1 Name in Region
+    Type: 'AWS::EC2::AvailabilityZone::Name'
+
+  pSubnet2AZName2:
+    Description: Availability Zone 2 Name in Region
+    Type: 'AWS::EC2::AvailabilityZone::Name'
+
+  pSubnet3AZName2:
+    Description: Availability Zone 3 Name in Region
+    #Type: 'AWS::EC2::AvailabilityZone::Name'
+    Type: String
+
+  pSubnet1CIDR2:
+    Description: CIDR range of first subnet
+    Type: String
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+
+  pSubnet2CIDR2:
+    Description: CIDR range of second subnet
+    Type: String
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+
+  pSubnet3CIDR2:
+    Description: CIDR range of third subnet
+    Type: String
+    #AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}' 
+
+# Mappings: 
+
+# Conditions: 
+
+Resources: 
+  VPCNestedStack1:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #ToDo:
+      TemplateURL: https://<S3 BUCKET>.s3.amazonaws.com/cf-templates/vpc.yaml
+      TimeoutInMinutes: '5'
+      Parameters:
+        pProjectName: {Ref: pProjectName}
+        pCFTAuthor: !Ref pCFTAuthor
+        pVPCCIDR: !Ref pVPCCIDR
+        pPublicSubnetFlag: !Ref pPublicSubnetFlag
+        pDNSSupport: !Ref pDNSSupport
+        pDNSHostnamesSupport: !Ref pDNSHostnamesSupport
+        pSubnet1AZName: !Ref pSubnet1AZName
+        pSubnet2AZName: !Ref pSubnet2AZName
+        pSubnet3AZName: !Ref pSubnet3AZName
+        pSubnet1CIDR: !Ref pSubnet1CIDR
+        pSubnet2CIDR: !Ref pSubnet2CIDR
+        pSubnet3CIDR: !Ref pSubnet3CIDR
+
+#TODO: WaitCondition timed out. Received 0 conditions when expecting 1, Can not use WaitCondition here?
+  # myWaitHandle:
+  #   Type: AWS::CloudFormation::WaitConditionHandle
+  #   Properties: {}
+
+  # myWaitCondition:
+  #   Type: AWS::CloudFormation::WaitCondition
+  #   DependsOn: VPCNestedStack1
+  #   Properties:
+  #     Handle: !Ref myWaitHandle
+  #     Timeout: '300'        
+
+  VPCNestedStack2:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #ToDo: 
+      TemplateURL: https://<S3 BUCKET>.s3.amazonaws.com/cf-templates/vpc.yaml
+      TimeoutInMinutes: '5'
+      Parameters:
+        pProjectName: {Ref: pProjectName}
+        #Refering to output from sibling nested stack, PS Wait Condition*
+        pCFTAuthor: !GetAtt VPCNestedStack1.Outputs.CFTAuthor
+        pVPCCIDR: !Ref pVPCCIDR2
+        pPublicSubnetFlag: !Ref pPublicSubnetFlag2
+        pDNSSupport: !Ref pDNSSupport2
+        pDNSHostnamesSupport: !Ref pDNSHostnamesSupport2
+        pSubnet1AZName: !Ref pSubnet1AZName2
+        pSubnet2AZName: !Ref pSubnet2AZName2
+        pSubnet3AZName: !Ref pSubnet3AZName2
+        pSubnet1CIDR: !Ref pSubnet1CIDR2
+        pSubnet2CIDR: !Ref pSubnet2CIDR2
+        pSubnet3CIDR: !Ref pSubnet3CIDR2 
+  
+  #TODO: How to enable DNS support             
+  myVPCPeeringConnection:
+    Type: 'AWS::EC2::VPCPeeringConnection'
+    DependsOn: VPCNestedStack2
+    Properties:
+      VpcId: !GetAtt VPCNestedStack1.Outputs.VPC
+      PeerVpcId: !GetAtt VPCNestedStack2.Outputs.VPC
+
+  route1To2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !GetAtt VPCNestedStack1.Outputs.PubRouteTable
+      DestinationCidrBlock: !Ref pVPCCIDR2
+      VpcPeeringConnectionId: !Ref myVPCPeeringConnection  
+
+  route2To1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !GetAtt VPCNestedStack2.Outputs.PubRouteTable
+      DestinationCidrBlock: !Ref pVPCCIDR
+      VpcPeeringConnectionId: !Ref myVPCPeeringConnection  
+
+  rSecurityGroupIngress1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !GetAtt VPCNestedStack1.Outputs.SecurityGroup
+      IpProtocol: '-1'
+      FromPort: '-1'
+      ToPort: '-1'
+      Description: Allowing all traffic from peer VPC
+      SourceSecurityGroupId: !GetAtt VPCNestedStack2.Outputs.SecurityGroup
+      
+  rSecurityGroupIngress2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !GetAtt VPCNestedStack2.Outputs.SecurityGroup
+      IpProtocol: '-1'
+      FromPort: '-1'
+      ToPort: '-1'
+      Description: Allowing all traffic from peer VPC
+      SourceSecurityGroupId: !GetAtt VPCNestedStack1.Outputs.SecurityGroup
+
+Outputs:
+    VPC1:
+      Value: !GetAtt VPCNestedStack1.Outputs.VPC
+    PublicSubnetVPC1:
+      Value: !GetAtt VPCNestedStack1.Outputs.PublicSubnet
+    PrivateSubnet1VPC1:
+      Value: !GetAtt VPCNestedStack1.Outputs.PrivateSubnet1
+    PrivateSubnet2VPC1:
+      Value: !GetAtt VPCNestedStack1.Outputs.PrivateSubnet2
+    VPC2:
+      Value: !GetAtt VPCNestedStack2.Outputs.VPC
+    PublicSubnetVPC2:
+      Value: !GetAtt VPCNestedStack2.Outputs.PublicSubnet
+    PrivateSubnet1VPC2:
+      Value: !GetAtt VPCNestedStack2.Outputs.PrivateSubnet1
+    PrivateSubnet2VPC2:
+      Value: !GetAtt VPCNestedStack2.Outputs.PrivateSubnet2
